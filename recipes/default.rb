@@ -19,12 +19,12 @@
 
 case node[:platform]
 when "debian", "ubuntu"
-	package "libssl-dev" do
-		action :upgrade
-	end
-	package "make" do
-		action :upgrade
-	end
+  package "libssl-dev" do
+    action :upgrade
+  end
+  package "make" do
+    action :upgrade
+  end
 end
 
 #install duo_unix from source
@@ -55,50 +55,54 @@ end
 
 #enable login_duo for ssh
 if node['duo_unix']['conf']['login_duo_enabled'] 
-	bash "require login_duo for ssh" do
-		code <<-WTAF
-		grep -q 'ForceCommand /usr/sbin/login_duo' /etc/ssh/sshd_config || echo 'ForceCommand /usr/sbin/login_duo' >> /etc/ssh/sshd_config
-		WTAF
-	end
+  bash "require login_duo for ssh" do
+    code <<-WTAF
+    grep -q 'ForceCommand /usr/sbin/login_duo' /etc/ssh/sshd_config || echo 'ForceCommand /usr/sbin/login_duo' >> /etc/ssh/sshd_config
+    grep -q 'PermitTunnel no' /etc/ssh/sshd_config || echo 'PermitTunnel no' >> /etc/ssh/sshd_config
+    grep -q 'AllowTcpForwarding no' /etc/ssh/sshd_config || echo 'AllowTcpForwarding no' >> /etc/ssh/sshd_config
+    WTAF
+  end
 else
-	bash "disable login_duo for ssh" do
-		code <<-WTAF
-		sed -i '\#ForceCommand /usr/sbin/login_duo#d' /etc/ssh/sshd_config
-		WTAF
-	end
+  bash "disable login_duo for ssh" do
+    code <<-WTAF
+    sed -i '\#ForceCommand /usr/sbin/login_duo#d' /etc/ssh/sshd_config
+    sed -i '\#PermitTunnel no#d' /etc/ssh/sshd_config
+    sed -i '\#AllowTcpForwarding no#d' /etc/ssh/sshd_config
+    WTAF
+  end
 end
 
 #hacky way of editing the sshd_config file to add or remove lines
 if node['duo_unix']['conf']['PermitTunnel'] 
-	bash "remove permit tunnel no" do
-		code <<-WTAF
-		sed -i '\#PermitTunnel no#d' /etc/ssh/sshd_config
-		WTAF
-	end
+  bash "remove permit tunnel no" do
+    code <<-WTAF
+    sed -i '\#PermitTunnel no#d' /etc/ssh/sshd_config
+    WTAF
+  end
 else
-	bash "add permit tunnel no" do
-		code <<-WTAF
-		grep -q 'PermitTunnel no' /etc/ssh/sshd_config || echo 'PermitTunnel no' >> /etc/ssh/sshd_config
-		WTAF
-	end
+  bash "add permit tunnel no" do
+    code <<-WTAF
+    grep -q 'PermitTunnel no' /etc/ssh/sshd_config || echo 'PermitTunnel no' >> /etc/ssh/sshd_config
+    WTAF
+  end
 end
 
 if node['duo_unix']['conf']['AllowTcpForwarding'] 
-	bash "remove AllowTcpForwarding no" do
-		code <<-WTAF
-		sed -i '\#AllowTcpForwarding no#d' /etc/ssh/sshd_config
-		WTAF
-	end
+  bash "remove AllowTcpForwarding no" do
+    code <<-WTAF
+    sed -i '\#AllowTcpForwarding no#d' /etc/ssh/sshd_config
+    WTAF
+  end
 else
-	bash "add AllowTcpForwarding no" do
-		code <<-WTAF
-		grep -q 'AllowTcpForwarding no' /etc/ssh/sshd_config || echo 'AllowTcpForwarding no' >> /etc/ssh/sshd_config
-		WTAF
-	end
+  bash "add AllowTcpForwarding no" do
+    code <<-WTAF
+    grep -q 'AllowTcpForwarding no' /etc/ssh/sshd_config || echo 'AllowTcpForwarding no' >> /etc/ssh/sshd_config
+    WTAF
+  end
 end
 
 #restart the sshd process so the next login will be duo protected
 bash "restart sshd process" do
-	code "kill -HUP `cat /var/run/sshd.pid`"
+  code "kill -HUP `cat /var/run/sshd.pid`"
 end
 
